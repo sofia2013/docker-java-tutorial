@@ -3,6 +3,7 @@ package com.docker.service;
 import com.docker.BaseTestCase;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.command.ExecCreateCmdResponse;
 import com.github.dockerjava.api.exception.DockerClientException;
 import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.exception.NotFoundException;
@@ -16,7 +17,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.isEmptyString;
+import static org.hamcrest.Matchers.not;
 
 /**
  *
@@ -257,24 +263,16 @@ finance-test:0.0.1*/
 
     @Test
     public void createContainerWithLinkInCustomNetwork1() throws DockerException {
-        Volume volume1 = new Volume("/usr/local/tomcat/logs");
-        Volume volume2 = new Volume("/home/docker/deploy/projects/finance/upload-files");
-        Volume volume3 = new Volume("/usr/local/tomcat/conf/context.xml");
-
-        ExposedPort tcp8080 = ExposedPort.tcp(8080);
-        Ports portBindings = new Ports();
-        portBindings.bind(tcp8080, Ports.Binding.bindPort(9009));
-
-        CreateContainerResponse container = dockerClient.createContainerCmd("finance-test:0.0.1")
-                .withVolumes(volume1, volume2, volume3)
-                .withBinds(new Bind("/home/docker/deploy/finance-network/logs", volume1),
-                        new Bind("/home/docker/deploy/finance-network/upload-files", volume2),
-                        new Bind("/home/docker/deploy/finance-network/conf/context.xml", volume3))
-                .withExposedPorts(tcp8080)
-                .withPortBindings(portBindings)
-                .withNetworkMode("net1")
+        Volume volume1 = new Volume("/etc/localtime:ro");
+        CreateContainerResponse container = dockerClient.createContainerCmd("mysql:5.7")
+                .withVolumes(volume1)
+                .withBinds(new Bind("/etc/localtime", volume1, true))
+                .withCmd("true")
+                .withEnv("MYSQL_ROOT_PASSWORD=root")
                 .exec();
-        dockerClient.startContainerCmd(container.getId()).exec();
+
+        dockerClient.startContainerCmd(container.getId())
+                .exec();
     }
 
 
@@ -302,5 +300,13 @@ finance-test:0.0.1*/
                                 "file_server=http://49.4.66.171:9900/cms_portal_fileserver")
                 .exec();
         dockerClient.startContainerCmd(container.getId()).exec();
+    }
+
+
+    @Test
+    public void execCreateTest() {
+
+        ExecCreateCmdResponse execCreateCmdResponse = dockerClient.execCreateCmd("3139c430c28d")
+                .withCmd("touch","/etc/nginx/conf.d/1.txt").exec();
     }
 }

@@ -3,7 +3,6 @@ package com.docker.service;
 import com.docker.BaseTestCase;
 import com.docker.infrastructure.command.DockerCreateContainerCmd;
 import com.docker.model.DockerRestartPolicy;
-import com.github.dockerjava.api.model.RestartPolicy;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -11,10 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-/**
- * 碳资产集成测试
- */
-public class EcmCloudDeployIntegrationTest extends BaseTestCase {
+public class EdcmngDeployIntegrationTest extends BaseTestCase {
 
     @Autowired
     private DockerContainerOperations dockerContainerOperations;
@@ -24,17 +20,17 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
     /**
      * 数据库名称，如：dppt
      */
-    private String dbName = "ecm_cloud";
+    private String dbName = "edc_mng";
 
     /**
      * 数据库用户名
      */
-    String dbUser = "ecm_cloud";
+    String dbUser = "edc_mng";
 
     /**
      * 数据库用户名密码
      */
-    String dbPassword = "ecm_cloud@Skytech18";
+    String dbPassword = "edc_mng_p@ssw0rd";
     /**
      * 租户标识
      */
@@ -42,7 +38,7 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
     /**
      * 应用标识，如：电票平台
      */
-    private String appName = "ecm_cloud";
+    private String appName = "edc-mng-web";
     /**
      * 租户子网名称，如：XXX企业
      */
@@ -51,7 +47,7 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
     /**
      * 宿主机端口
      */
-    private int hostPort = 9001;
+    private int hostPort = 9007;
 
     /**
      * 容器端口
@@ -60,7 +56,7 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
     /**
      * 数据库镜像名称
      */
-    private String db_ImageName = "localhost:9005/ecm_cloud-mysql:test";
+    private String db_ImageName = "localhost:9005/edc-mysql:test";
     /**
      * 一次订阅的唯一标识
      */
@@ -68,7 +64,7 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
     /**
      * 应用镜像的名称
      */
-    private String webImageName = "localhost:9005/ecm_cloud:1.0.0";
+    private String webImageName = "localhost:9005/edc-mng:1.0.0";
     /**
      * 容器内部数据卷参数，如日志目录
      */
@@ -76,7 +72,7 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
     /**
      * 容器内部数据卷参数，如附件上传路径
      */
-    private final String web_container_uploadPath = "/appdata/carbon_cloud";
+    private final String web_container_uploadPath = "/home/wangfu/edc_files";
     /**
      * 挂载在宿主机的数据卷参数，如日志目录
      */
@@ -117,7 +113,6 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
         dockerContainerOperations.createContainersWithNetWorkName(containers, netWorkName);
     }
 
-
     private DockerCreateContainerCmd createContainerMysql() {
         DockerCreateContainerCmd result = new DockerCreateContainerCmd(db_ImageName);
         result.setName(mysqlContainerName);
@@ -146,17 +141,22 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
                 put(web_hostPath_uploadPath, web_container_uploadPath);
             }
         };
+
         String[] envs = {
                 "mysql.host=" + mysqlContainerName,
                 "mysql.port=3306",
                 "application.database=" + dbName,
                 "application.user=" + dbUser,
                 "application.password=" + dbPassword,
-                "edc.manager=http://192.168.1.152:8058/edcmng/",
-                "edc.storage=http://192.168.1.152:8057/storage/",
-                "time.switch=off",
-                "attachment.dir=" + web_container_uploadPath,
-                "file_server=http://49.4.66.171:9900/cms_portal_fileserver "
+                "pagination.enforce=false",
+                "pagination.size=50",
+                "application.name=com.skytech.manage",
+                "simulate=false",
+                "edc.storage=http://localhost:8090/storage/",
+                "ent_code=732252465",
+                "ent_name=中盐常州化工",
+                "ent_city=常州市",
+                "application.fileRootPath=" + web_container_uploadPath,
         };
 
         DockerCreateContainerCmd web = new DockerCreateContainerCmd(webImageName);
