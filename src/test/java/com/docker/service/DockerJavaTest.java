@@ -2,6 +2,7 @@ package com.docker.service;
 
 import com.docker.BaseTestCase;
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.BuildImageCmd;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.ExecCreateCmdResponse;
 import com.github.dockerjava.api.exception.DockerClientException;
@@ -9,18 +10,23 @@ import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.*;
 import com.github.dockerjava.core.RemoteApiVersion;
-import com.github.dockerjava.core.command.BuildImageResultCallback;
-import com.github.dockerjava.core.command.EventsResultCallback;
-import com.github.dockerjava.core.command.PullImageResultCallback;
+import com.github.dockerjava.core.command.*;
+import com.github.dockerjava.core.util.CompressArchiveUtil;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.isEmptyString;
 import static org.hamcrest.Matchers.not;
 
@@ -276,8 +282,6 @@ finance-test:0.0.1*/
     }
 
 
-
-
     @Test
     public void createweb() throws DockerException {
         ExposedPort tcp8080 = ExposedPort.tcp(8080);
@@ -303,10 +307,57 @@ finance-test:0.0.1*/
     }
 
 
-    @Test
-    public void execCreateTest() {
+    private String filePath = "C:\\Users\\sofia\\Desktop\\文档清单\\ecm_cloud\\application\\dockerfile";
 
-        ExecCreateCmdResponse execCreateCmdResponse = dockerClient.execCreateCmd("3139c430c28d")
-                .withCmd("touch","/etc/nginx/conf.d/1.txt").exec();
+    private String imageName = "106.14.196.164:8888/test/ecm_cloud-test:v2.0.0";
+    /*
+     * docker build -t $name:$tag -f /home/docker/deploy/edc/application/dockerfile/Dockerfile /home/docker/deploy/edc/application/dockerfile;
+     * */
+
+    @Test
+    public void 制作镜像_1() {
+        File baseDir = new File(filePath);
+        Collection<File> files = FileUtils.listFiles(baseDir, TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
+        try {
+            File tarFile = CompressArchiveUtil.archiveTARFiles(baseDir, files, UUID.randomUUID().toString());
+            dockerfileBuild(new FileInputStream(tarFile));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void dockerfileBuild(InputStream tarInputStream, String dockerFilePath) {
+        BuildImageCmd buildImageCmd = dockerClient.buildImageCmd()
+                .withTags(new HashSet<String>(Arrays.asList(imageName)))
+                .withTarInputStream(tarInputStream)
+                .withDockerfilePath(dockerFilePath);
+        execBuild(buildImageCmd);
+    }
+
+    private void dockerfileBuild(InputStream tarInputStream) {
+        BuildImageCmd buildImageCmd = dockerClient.buildImageCmd()
+                .withTags(new HashSet<String>(Arrays.asList(imageName)))
+                .withTarInputStream(tarInputStream);
+        execBuild(buildImageCmd);
+    }
+
+    private void dockerfileBuild(File baseDir) {
+        BuildImageCmd buildImageCmd = dockerClient.buildImageCmd(baseDir)
+                .withTags(new HashSet<String>(Arrays.asList(imageName)));
+        execBuild(buildImageCmd);
+    }
+
+    private void execBuild(BuildImageCmd buildImageCmd)  {
+        String imageId = buildImageCmd.withNoCache(true).exec(new BuildImageResultCallback()).awaitImageId();
+
+       /* try {
+            dockerClient.pushImageCmd(imageName)
+                    .withAuthConfig(dockerClient.authConfig())
+                    .exec(new PushImageResultCallback())
+                    .awaitCompletion(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }*/
+
     }
 }
