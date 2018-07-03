@@ -17,7 +17,6 @@
     <properties>
         <docker-java.version>3.1.0-rc-3</docker-java.version>
         <javax.activation.version>1.1.1</javax.activation.version>
-        <java.version>10</java.version>
     </properties>
 
     <dependencies>

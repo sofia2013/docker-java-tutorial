@@ -301,7 +301,7 @@ finance-test:0.0.1*/
         dockerClient.startContainerCmd(container.getId()).exec();
     }
 
-    private String filePath = "E:\\docker-java-tutorials\\src\\test\\resources\\dockerfile";
+    private String filePath = "E:\\docker-java-tutorials\\src\\test\\resources\\imagebuild.tomcat.dockerfile";
     private String imageName = "localhost:9005/push-test:v1.0.0";
 
     @Test
