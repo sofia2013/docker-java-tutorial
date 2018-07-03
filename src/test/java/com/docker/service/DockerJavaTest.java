@@ -41,7 +41,6 @@ public class DockerJavaTest extends BaseTestCase {
         dockerClient.stopContainerCmd(container.getId()).exec();
     }
 
-
     @Test
     public void 下载本地仓库中的镜像() throws Exception {
         dockerClient.pullImageCmd("119.3.3.64:9005/hello-world:latest")
