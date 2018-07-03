@@ -4,31 +4,27 @@ import com.docker.BaseTestCase;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.BuildImageCmd;
 import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.command.ExecCreateCmdResponse;
-import com.github.dockerjava.api.exception.DockerClientException;
 import com.github.dockerjava.api.exception.DockerException;
-import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.*;
-import com.github.dockerjava.core.RemoteApiVersion;
-import com.github.dockerjava.core.command.*;
+import com.github.dockerjava.core.command.BuildImageResultCallback;
+import com.github.dockerjava.core.command.EventsResultCallback;
+import com.github.dockerjava.core.command.PullImageResultCallback;
+import com.github.dockerjava.core.command.PushImageResultCallback;
 import com.github.dockerjava.core.util.CompressArchiveUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.io.*;
-import java.security.SecureRandom;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.isEmptyString;
-import static org.hamcrest.Matchers.not;
 
 /**
  *
@@ -306,13 +302,8 @@ finance-test:0.0.1*/
         dockerClient.startContainerCmd(container.getId()).exec();
     }
 
-
-    private String filePath = "C:\\Users\\sofia\\Desktop\\文档清单\\ecm_cloud\\application\\dockerfile";
-
-    private String imageName = "106.14.196.164:8888/test/ecm_cloud-test:v2.0.0";
-    /*
-     * docker build -t $name:$tag -f /home/docker/deploy/edc/application/dockerfile/Dockerfile /home/docker/deploy/edc/application/dockerfile;
-     * */
+    private String filePath = "E:\\docker-java-tutorials\\src\\test\\resources\\dockerfile";
+    private String imageName = "localhost:9005/push-test:v1.0.0";
 
     @Test
     public void 制作镜像_1() {
@@ -347,17 +338,17 @@ finance-test:0.0.1*/
         execBuild(buildImageCmd);
     }
 
-    private void execBuild(BuildImageCmd buildImageCmd)  {
+    private void execBuild(BuildImageCmd buildImageCmd) {
         String imageId = buildImageCmd.withNoCache(true).exec(new BuildImageResultCallback()).awaitImageId();
 
-       /* try {
+        try {
             dockerClient.pushImageCmd(imageName)
                     .withAuthConfig(dockerClient.authConfig())
                     .exec(new PushImageResultCallback())
                     .awaitCompletion(30, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }*/
+        }
 
     }
 }
