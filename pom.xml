@@ -16,6 +16,8 @@
 
     <properties>
         <docker-java.version>3.1.0-rc-3</docker-java.version>
+        <javax.activation.version>1.1.1</javax.activation.version>
+        <java.version>10</java.version>
     </properties>
 
     <dependencies>
@@ -45,7 +47,6 @@
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
-            <version>2.9.7</version>
             <scope>test</scope>
         </dependency>
 

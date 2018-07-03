@@ -12,7 +12,7 @@ public class InternalDockerImageOperationsTest extends BaseTestCase {
 
     private String filePath = "E:\\docker-java-tutorials\\src\\test\\resources\\dockerfile";
     private String name = "isv/skytech/app1";
-    private String version = "2.0.0";
+    private String version = "4.0.0";
 
     @Test
     public void 制作镜像_推送镜像() {
