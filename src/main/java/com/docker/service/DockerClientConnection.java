@@ -8,5 +8,15 @@ public interface DockerClientConnection {
     /**
      * @return
      */
-    Object connect();
+    DockerContainerOperations getDockerContainerOperations();
+
+    /**
+     * @return
+     */
+    DockerImageOperations getDockerImageOperations();
+
+    /**
+     * @return
+     */
+    DockerNetworkOperations getDockerNetworkOperations();
 }

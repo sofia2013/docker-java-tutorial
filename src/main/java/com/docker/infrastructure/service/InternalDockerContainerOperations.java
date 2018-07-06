@@ -7,47 +7,49 @@ import com.docker.model.DockerContainer;
 import com.docker.model.DockerContainerState;
 import com.docker.model.DockerPort;
 import com.docker.model.DockerProtocol;
-import com.docker.service.DockerContainerBuilder;
-import com.docker.service.DockerContainerOperations;
-import com.docker.service.DockerCreateContainerCommand;
-import com.docker.service.DockerNetworkOperations;
+import com.docker.service.*;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.*;
 import com.github.dockerjava.api.exception.ConflictException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.exception.NotModifiedException;
 import com.github.dockerjava.api.model.*;
-import com.github.dockerjava.core.command.PullImageResultCallback;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author sofia
  */
-@Service("dockerClient.dockerContainerOperations")
 public class InternalDockerContainerOperations implements DockerContainerOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(InternalDockerContainerOperations.class);
 
-    @Autowired
     private DockerClient dockerClient;
 
-    @Autowired
     private DockerNetworkOperations dockerNetworkOperations;
 
-    @Value("${dockerContainer.intervalSecond:15}")
+    private DockerImageOperations dockerImageOperations;
+
     private int intervalSecond = 15;
+
+    public InternalDockerContainerOperations setIntervalSecond(int intervalSecond) {
+        this.intervalSecond = intervalSecond;
+        return this;
+    }
+
+    public InternalDockerContainerOperations(DockerClient dockerClient, DockerNetworkOperations dockerNetworkOperations, DockerImageOperations dockerImageOperations) {
+        this.dockerClient = dockerClient;
+        this.dockerNetworkOperations = dockerNetworkOperations;
+        this.dockerImageOperations = dockerImageOperations;
+    }
 
     /**
      * 新建容器
@@ -185,14 +187,7 @@ public class InternalDockerContainerOperations implements DockerContainerOperati
             logger.info(String.format("开始下载镜像 %s 。", imageName));
         }
 
-        try {
-            dockerClient.pullImageCmd(imageName)
-                    .exec(new PullImageResultCallback())
-                    .awaitCompletion(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
+        this.dockerImageOperations.pullImage(imageName);
 
         if (logger.isDebugEnabled()) {
             logger.info(String.format("下载镜像 %s 完毕 。", imageName));

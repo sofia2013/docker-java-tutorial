@@ -12,13 +12,14 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 public class DockerClientOperationsTest extends BaseTestCase {
 
-    @Autowired
+    @Resource(name = "skynj.dockerContainerOperations")
     private DockerContainerOperations dockerContainerOperations;
 
     @Test
@@ -323,7 +324,7 @@ public class DockerClientOperationsTest extends BaseTestCase {
     }
 
     @Test
-    public void 设置重启策略(){
+    public void 设置重启策略() {
         DockerCreateContainerCmd tomcat = new DockerCreateContainerCmd("tomcat:latest");
         tomcat.withRestartPolicy(DockerRestartPolicy.ALWAYS_RESTART);
         dockerContainerOperations.createContainer(tomcat);
@@ -361,7 +362,7 @@ public class DockerClientOperationsTest extends BaseTestCase {
     /**
      * 数据库镜像名称
      */
-    private String db_ImageName ="localhost:9005/finance-mysql:1.0.0";
+    private String db_ImageName = "localhost:9005/finance-mysql:1.0.0";
     /**
      * 一次订阅的唯一标识
      */

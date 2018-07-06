@@ -6,13 +6,14 @@ import com.docker.model.DockerRestartPolicy;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 public class EdcmngDeployIntegrationTest extends BaseTestCase {
 
-    @Autowired
+    @Resource(name = "skynj.dockerContainerOperations")
     private DockerContainerOperations dockerContainerOperations;
 
     //
