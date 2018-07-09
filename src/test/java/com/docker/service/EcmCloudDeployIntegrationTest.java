@@ -3,9 +3,7 @@ package com.docker.service;
 import com.docker.BaseTestCase;
 import com.docker.infrastructure.command.DockerCreateContainerCmd;
 import com.docker.model.DockerRestartPolicy;
-import com.github.dockerjava.api.model.RestartPolicy;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -17,7 +15,7 @@ import java.util.List;
  */
 public class EcmCloudDeployIntegrationTest extends BaseTestCase {
 
-    @Resource(name = "skynj.dockerContainerOperations")
+    @Resource(name = "docker.dockerContainerOperations")
     private DockerContainerOperations dockerContainerOperations;
 
     //
@@ -50,26 +48,17 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
     private String netWorkName = "C1";
 
     /**
-     * 宿主机端口
-     */
-    private int hostPort = 9001;
-
-    /**
      * 容器端口
      */
     private int defaultContainerExposePort = 8080;
     /**
      * 数据库镜像名称
      */
-    private String db_ImageName = "localhost:9005/ecm_cloud-mysql:test";
-    /**
-     * 一次订阅的唯一标识
-     */
-    private long currentTime = System.currentTimeMillis();
+    private String db_ImageName = "localhost:9005/ecm_cloud-mysql:1.0.0";
     /**
      * 应用镜像的名称
      */
-    private String webImageName = "localhost:9005/ecm_cloud:1.0.0";
+    private String webImageName = "localhost:9005/ecm_cloud:2.0.0";
     /**
      * 容器内部数据卷参数，如日志目录
      */
@@ -78,48 +67,34 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
      * 容器内部数据卷参数，如附件上传路径
      */
     private final String web_container_uploadPath = "/appdata/carbon_cloud";
-    /**
-     * 挂载在宿主机的数据卷参数，如日志目录
-     */
-    private String web_hostPath_logPath = String.format("/home/docker/apps/%s/%s/%s/logs", appName, renterName, currentTime);
-
-    /**
-     * 挂载在宿主机的数据卷参数，如附件上传路径
-     */
-    private String web_hostPath_uploadPath = String.format("/home/docker/apps/%s/%s/%s/attachment", appName, renterName, currentTime);
 
     /**
      * 容器内数据存放地址
      */
     private String db_data_path = "/var/lib/mysql";
 
-    /**
-     * 宿主机数据存放映射地址
-     */
-    private String db_data_hostPath = String.format("/home/docker/apps/%s/%s/dbdata/%s", appName, renterName, currentTime);
-
-
-    /**
-     *
-     */
-    private String mysqlContainerName = String.format("%s_%s_%s", appName, "db", currentTime);
-
-    /**
-     *
-     */
     @Test
     public void 创建容器栈_子网存在() {
-        List<DockerCreateContainerCmd> containers = new ArrayList<DockerCreateContainerCmd>();
-
-        DockerCreateContainerCmd mysql = createContainerMysql();
-        DockerCreateContainerCmd web = createContainerWeb();
-        containers.add(mysql);
-        containers.add(web);
-        dockerContainerOperations.createContainersWithNetWorkName(containers, netWorkName);
+        long currentTime;
+        for (int i = 0; i < 10; i++) {
+            currentTime = System.currentTimeMillis();
+            List<DockerCreateContainerCmd> containers = new ArrayList();
+            DockerCreateContainerCmd mysql = createContainerMysql(currentTime);
+            DockerCreateContainerCmd web = createContainerWeb(12000 + i, mysql.getName(), currentTime);
+            containers.add(mysql);
+            containers.add(web);
+            dockerContainerOperations.createContainersWithNetWorkName(containers, netWorkName);
+        }
     }
 
 
-    private DockerCreateContainerCmd createContainerMysql() {
+    private DockerCreateContainerCmd createContainerMysql(long currentTime) {
+        /**
+         * 宿主机数据存放映射地址
+         */
+        String db_data_hostPath = String.format("/home/docker/apps/%s/%s/dbdata/%s", appName, renterName, currentTime);
+        String mysqlContainerName = String.format("%s_%s_%s", appName, "db", currentTime);
+
         DockerCreateContainerCmd result = new DockerCreateContainerCmd(db_ImageName);
         result.setName(mysqlContainerName);
         result.withBinds(new HashMap<String, String>() {
@@ -136,10 +111,19 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
         return result;
     }
 
-    private DockerCreateContainerCmd createContainerWeb() {
-        List<String> volumes = new ArrayList<String>();
+    private DockerCreateContainerCmd createContainerWeb(Integer hostPort, String mysqlContainerName, long currentTime) {
+        List<String> volumes = new ArrayList();
         volumes.add(web_container_logPath);
         volumes.add(web_container_uploadPath);
+        /**
+         * 挂载在宿主机的数据卷参数，如日志目录
+         */
+        String web_hostPath_logPath = String.format("/home/docker/apps/%s/%s/%s/logs", appName, renterName, currentTime);
+
+        /**
+         * 挂载在宿主机的数据卷参数，如附件上传路径
+         */
+        String web_hostPath_uploadPath = String.format("/home/docker/apps/%s/%s/%s/attachment", appName, renterName, currentTime);
 
         HashMap<String, String> volumesBinds = new HashMap<String, String>() {
             {
@@ -172,7 +156,5 @@ public class EcmCloudDeployIntegrationTest extends BaseTestCase {
         web.withBinds(volumesBinds);
         web.setEnv(envs);
         return web;
-
     }
-
 }

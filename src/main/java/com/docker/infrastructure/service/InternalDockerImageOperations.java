@@ -1,6 +1,8 @@
 package com.docker.infrastructure.service;
 
 import com.docker.exception.DockerImageException;
+import com.docker.model.ImageRepository;
+import com.docker.model.RegistryAuthConfig;
 import com.docker.service.DockerImageOperations;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.BuildImageCmd;
@@ -32,19 +34,9 @@ import java.util.concurrent.TimeUnit;
 public class InternalDockerImageOperations implements DockerImageOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(InternalDockerImageOperations.class);
-
     private DockerClient dockerClient;
-    private String registryRepository = "localhost:8081";
     private long pullImagesAwaitSeconds = 30;
     private long pushImagesAwaitSeconds = 30;
-
-    public InternalDockerImageOperations setRegistryRepository(String registryRepository) {
-        if (StringUtils.isBlank(registryRepository)) {
-            throw new DockerImageException("pullImage-init", String.format("镜像仓库地址不能为NULL或者空字符串。", pullImagesAwaitSeconds));
-        }
-        this.registryRepository = registryRepository;
-        return this;
-    }
 
     public InternalDockerImageOperations setPullImagesAwaitSeconds(long pullImagesAwaitSeconds) {
         if (pullImagesAwaitSeconds <= 0) {
@@ -70,91 +62,113 @@ public class InternalDockerImageOperations implements DockerImageOperations {
     }
 
     @Override
-    public void pullImageFrom(String imageRepository, AuthConfig authConfig) throws DockerImageException {
-        if (StringUtils.isBlank(imageRepository)) {
-            throw new DockerImageException("pullImage-001", "镜像地址不能为NULL或者空字符串。");
+    public void pullImageFrom(ImageRepository imageNameWithRepository, RegistryAuthConfig registryAuthConfig) throws DockerImageException {
+        if (imageNameWithRepository == null) {
+            throw new DockerImageException("pullImageFrom-001", "镜像地址不能为NULL。");
         }
+
+        if (registryAuthConfig == null) {
+            throw new DockerImageException("pullImageFrom-002", "镜像仓库认证信息不能为NULL。");
+        }
+
+        AuthConfig authConfig = new AuthConfig()
+                .withUsername(registryAuthConfig.getUsername())
+                .withPassword(registryAuthConfig.getPassword())
+                .withRegistryAddress(registryAuthConfig.getRegistryAddress());
+
+        String imageName = imageNameWithRepository.toString();
         try {
-            dockerClient.pullImageCmd(imageRepository).
+            dockerClient.pullImageCmd(imageName).
                     withAuthConfig(authConfig).
                     exec(new PullImageResultCallback()).
                     awaitCompletion(pullImagesAwaitSeconds, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            throw new DockerImageException("pullImage-004", String.format("下载镜像 %s 失败。", imageRepository));
+            throw new DockerImageException("pullImageFrom-003", String.format("下载镜像 %s 失败。", imageName));
         }
     }
 
     @Override
-    public void pullImage(String imageRepository) throws DockerImageException {
-        if (StringUtils.isBlank(imageRepository)) {
-            throw new DockerImageException("pullImage-001", "镜像地址不能为NULL或者空字符串。");
+    public void pullImage(ImageRepository imageNameWithRepository) throws DockerImageException {
+        if (imageNameWithRepository == null) {
+            throw new DockerImageException("pullImage-001", "镜像地址不能为NULL。");
         }
+        this.pullImage(imageNameWithRepository.toString());
+    }
+
+    @Override
+    public void pullImage(String imageNameWithRepository) throws DockerImageException {
         try {
             dockerClient
-                    .pullImageCmd(imageRepository)
+                    .pullImageCmd(imageNameWithRepository)
                     .exec(new PullImageResultCallback())
                     .awaitCompletion(pullImagesAwaitSeconds, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            throw new DockerImageException("pullImage-004", String.format("下载镜像 %s 失败。", imageRepository));
+            throw new DockerImageException("pullImage-002", String.format("下载镜像 %s 失败。", imageNameWithRepository));
         }
     }
 
-    /**
-     * @param dockerFilePath
-     * @param imageRepository 仓库名为两段式路径，比如 jwilder/nginx-proxy
-     * @param tag
-     * @return
-     */
     @Override
-    public String buildImage(String dockerFilePath, String imageRepository, String tag) throws DockerImageException {
-        if (StringUtils.isBlank(imageRepository)) {
+    public String buildImage(String dockerFilePath, ImageRepository imageNameWithRepository) throws DockerImageException {
+        if (imageNameWithRepository == null) {
             throw new DockerImageException("buildImage-002", "镜像仓库名不能为NULL或者空字符串。");
         }
-        if (StringUtils.isBlank(tag)) {
-            throw new DockerImageException("buildImage-003", "镜像标签名不能为NULL或者空字符串。");
-        }
 
+        String imageName = imageNameWithRepository.toString();
         InputStream tarFile = fetchImageBuildFilesToTarFile(dockerFilePath);
-        String imageName = String.format("%s/%s:%s", registryRepository, imageRepository, tag);
         return dockerfileBuild(tarFile, imageName);
     }
 
-
     @Override
-    public void pushImage(String imageRepository, String tag) throws DockerImageException {
-        String imageName = String.format("%s/%s:%s", registryRepository, imageRepository, tag);
+    public void pushImageToLocal(ImageRepository imageNameWithRepository) throws DockerImageException {
+        if (imageNameWithRepository == null) {
+            throw new DockerImageException("pushImageToLocal-001", "镜像地址不能为NULL。");
+        }
+
+        String imageName = imageNameWithRepository.toString();
         try {
-            dockerClient.pushImageCmd(imageName)
-                    .withAuthConfig(dockerClient.authConfig())
-                    .exec(new PushImageResultCallback())
-                    .awaitCompletion(pushImagesAwaitSeconds, TimeUnit.SECONDS);
+            dockerClient.pushImageCmd(imageName).
+                    withAuthConfig(dockerClient.authConfig()).
+                    exec(new PushImageResultCallback()).
+                    awaitCompletion(pushImagesAwaitSeconds, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             logger.error("推送镜像失败。", e);
-            throw new DockerImageException("pushImage-001", "镜像制作文件读取失败。");
+            throw new DockerImageException("pushImageToLocal-002", "镜像制作文件读取失败。");
         } catch (Exception e) {
             logger.error("推送镜像失败。", e);
-            throw new DockerImageException("pushImage-002", "推送镜像失败。");
+            throw new DockerImageException("pushImageToLocal-003", String.format("推送镜像 %s 失败。", imageName));
         }
+    }
+
+    @Override
+    public void tagImage(ImageRepository imageNameWithRepository, ImageRepository newImageNameWithRepository) throws DockerImageException {
+        if (imageNameWithRepository == null) {
+            throw new DockerImageException("tagImage-001", "原镜像地址不能为NULL。");
+        }
+        if (newImageNameWithRepository == null) {
+            throw new DockerImageException("tagImage-002", "新镜像地址不能为NULL。");
+        }
+
+        dockerClient.tagImageCmd(imageNameWithRepository.toString(), newImageNameWithRepository.toStringWithoutTag(), newImageNameWithRepository.getTag()).exec();
     }
 
     private InputStream fetchImageBuildFilesToTarFile(String dockerFilePath) {
         if (StringUtils.isBlank(dockerFilePath)) {
-            throw new DockerImageException("buildImage-001", "镜像制作文件目录不能为NULL或者空字符串。");
+            throw new DockerImageException("fetchImageBuildFilesToTarFile-001", "镜像制作文件目录不能为NULL或者空字符串。");
         }
         File dockerFile = FileUtils.getFile(dockerFilePath);
         if (dockerFile.exists() == false) {
-            throw new DockerImageException("buildImage-004", "镜像制作文件目录不存在。");
+            throw new DockerImageException("fetchImageBuildFilesToTarFile-002", "镜像制作文件目录不存在。");
         }
         Collection<File> files = FileUtils.listFiles(dockerFile, TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
         if (CollectionUtils.isEmpty(files)) {
-            throw new DockerImageException("buildImage-005", "镜像制作文件不存在。");
+            throw new DockerImageException("fetchImageBuildFilesToTarFile-003", "镜像制作文件不存在。");
         }
         try {
             File file = CompressArchiveUtil.archiveTARFiles(dockerFile, files, UUID.randomUUID().toString());
             return new FileInputStream(file);
         } catch (IOException e) {
             logger.error("镜像制作文件读取失败。", e);
-            throw new DockerImageException("buildImage-006", "镜像制作失败。");
+            throw new DockerImageException("fetchImageBuildFilesToTarFile-004", "镜像制作失败。");
         }
     }
 
@@ -165,6 +179,5 @@ public class InternalDockerImageOperations implements DockerImageOperations {
                 .withTarInputStream(inputStream);
         return buildImageCmd.withNoCache(true).exec(new BuildImageResultCallback()).awaitImageId();
     }
-
 
 }

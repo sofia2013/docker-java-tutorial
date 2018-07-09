@@ -13,7 +13,7 @@ import java.util.List;
 
 public class EdcmngDeployIntegrationTest extends BaseTestCase {
 
-    @Resource(name = "skynj.dockerContainerOperations")
+    @Resource(name = "docker.dockerContainerOperations")
     private DockerContainerOperations dockerContainerOperations;
 
     //

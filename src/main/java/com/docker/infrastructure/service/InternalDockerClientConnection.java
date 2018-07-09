@@ -57,13 +57,6 @@ public class InternalDockerClientConnection implements DockerClientConnection {
     private int pullImagesAwaitSeconds;
 
     /**
-     * 镜像仓库地址，用于镜像的推送存储，
-     * 如 : docker login xxx.xxx.xxx.xxx:xxxx或者放置域名
-     */
-    @Value("${registryRepository:localhost:9005}")
-    private String registryRepository;
-
-    /**
      * 容器启动间隔时间
      */
     @Value("${dockerContainer.intervalSecond:15}")
@@ -91,8 +84,7 @@ public class InternalDockerClientConnection implements DockerClientConnection {
         DockerClient dockerClient = DockerClientBuilder.getInstance(config).build();
         dockerImageOperations = new InternalDockerImageOperations(dockerClient).
                 setPullImagesAwaitSeconds(pullImagesAwaitSeconds).
-                setPushImagesAwaitSeconds(pushImagesAwaitSeconds).
-                setRegistryRepository(registryRepository);
+                setPushImagesAwaitSeconds(pushImagesAwaitSeconds);
         dockerNetworkOperations = new InternalDockerNetworkOperations(dockerClient);
         dockerContainerOperations = new InternalDockerContainerOperations(dockerClient, dockerNetworkOperations, dockerImageOperations).
                 setIntervalSecond(intervalSecond);
